@@ -45,10 +45,12 @@ node bin/iho-test.mjs doctor --project /absolute/path/to/iho-project --run
 ## AI 开发接入
 
 ```sh
-node scripts/install-skills.mjs
+node scripts/install-skills.mjs --project /absolute/path/to/iho-project
 ```
 
-默认在个人 `.agents/skills` 中创建链接，支持 Windows junction；可用 `--to` 指定发现目录。已有不同来源的同名 skill 会保留并报冲突。保留此源码 checkout，链接才会有效。
+仅安装到指定 Vue 3 IHO 项目的 `.agents/skills/`，不安装到个人或全局目录。必须传入 `--project`；旧的 `--to` 参数不再支持。使用目录链接（Windows junction）共用工具包源码，已有不同来源的同名 skill 会保留并报冲突。
+
+安装器在该目录的 `.gitignore` 中仅追加这两个链接的忽略项。链接包含本机工具包位置，不作为可移植文件提交；每位开发者、每个新 checkout 都运行一次安装命令，并保留工具包目录。项目通过 AGENTS.md 和项目测试说明记录使用入口。
 
 - `iho-test-bootstrap`：创建、迁移、修复测试环境，直至真实流程通过。
 - `iho-behavior-testing`：从需求或缺陷编写行为测试，复用项目环境；与 mattpocock TDD 的开发节奏配合。
