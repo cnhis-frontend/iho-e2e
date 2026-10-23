@@ -4,7 +4,7 @@ import { mkdtemp, writeFile, readFile, mkdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { initializationPlan, applyInitialization, diagnose, loadProjectKnowledge } from '../lib/project.mjs';
-import { checkNode, packageManager } from '../lib/bootstrap.mjs';
+import { checkNode, packageManager, runPackage } from '../lib/bootstrap.mjs';
 
 async function project(t) {
   const root = await mkdtemp(join(tmpdir(), 'iho-project-'));
@@ -97,4 +97,12 @@ test('an adopted project keeps its existing test framework instead of generating
   await applyInitialization(plan, { install: false });
   await assert.rejects(readFile(join(root, 'vitest.iho.config.ts')), { code: 'ENOENT' });
   assert.deepEqual(JSON.parse(await readFile(join(root, 'iho-test.config.json'), 'utf8')), profile);
+});
+
+test('package scripts use the toolkit Node runtime', async t => {
+  const root = await project(t);
+  await writeFile(join(root, 'package.json'), JSON.stringify({ scripts: { 'runtime:check': 'node -p process.execPath' } }));
+  const result = runPackage('npm', ['run', '--silent', 'runtime:check'], root, { capture: true });
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout.trim().toLowerCase(), process.execPath.toLowerCase());
 });

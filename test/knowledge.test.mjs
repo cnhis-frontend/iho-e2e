@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createKnowledge, digest } from '../lib/knowledge.mjs';
@@ -65,11 +65,14 @@ test('authentication denial and missing content are distinguishable', async () =
 
 test('a catalog cannot read a document outside the local root', async t => {
   const f = await fixture(t);
+  const nested = join(f.root, 'knowledge');
+  await mkdir(nested);
+  await writeFile(join(f.root, 'outside.md'), f.content);
   const catalog = JSON.parse(f.catalog);
   catalog.rules[0].ref = '../outside.md';
-  await writeFile(join(f.root, 'catalog.json'), JSON.stringify(catalog));
-  const source = await createKnowledge({ type: 'local', root: f.root });
-  await assert.rejects(source.read('behavior'), e => ['INVALID', 'NOT_FOUND'].includes(e.code));
+  await writeFile(join(nested, 'catalog.json'), JSON.stringify(catalog));
+  const source = await createKnowledge({ type: 'local', root: nested });
+  await assert.rejects(source.read('behavior'), { code: 'INVALID' });
 });
 
 test('Git provider reads the pinned revision even with local uncommitted edits', async t => {
