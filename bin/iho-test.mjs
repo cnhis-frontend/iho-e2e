@@ -2,10 +2,24 @@
 import { readFile, mkdtemp, rm } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { initializationPlan, applyInitialization, diagnose, loadProjectKnowledge, exists, readJson } from '../lib/project.mjs';
+import { initializationPlan, applyInitialization, diagnose, loadProjectKnowledge, exists, readJson, toolkitRoot, version } from '../lib/project.mjs';
 import { packageManager, runPackage } from '../lib/bootstrap.mjs';
 
 const [command, ...args] = process.argv.slice(2);
+const valueFlags = new Set(['--project', '--pm', '--query', '--id', '--registry']);
+const switches = new Set(['--apply', '--no-install', '--no-verify', '--run']);
+for (let i = 0; i < args.length; i++) {
+  if (valueFlags.has(args[i])) {
+    if (!args[i + 1] || args[i + 1].startsWith('--')) {
+      process.stderr.write(`Missing value for ${args[i]}\n`);
+      process.exit(1);
+    }
+    i++;
+  } else if (!switches.has(args[i])) {
+    process.stderr.write(`Unknown option: ${args[i]}\n`);
+    process.exit(1);
+  }
+}
 const option = (name, fallback) => { const i = args.indexOf(name); return i < 0 ? fallback : args[i + 1]; };
 const root = resolve(option('--project', process.cwd()));
 const print = obj => process.stdout.write(JSON.stringify(obj, null, 2) + '\n');
@@ -40,8 +54,10 @@ async function runChecks(report) {
 }
 
 try {
-  if (command === 'init') {
-    const plan = await initializationPlan(root, { packageManager: option('--pm') });
+  if (command === 'info') {
+    print({ version, toolkitRoot, adaptationGuide: resolve(toolkitRoot, 'docs/project-adaptation.md') });
+  } else if (command === 'init') {
+    const plan = await initializationPlan(root, { packageManager: option('--pm'), registry: option('--registry') });
     const result = args.includes('--apply') ? await applyInitialization(plan, { install: !args.includes('--no-install'), verify: !args.includes('--no-verify') }) : undefined;
     const { originalPackage, ...summary } = plan;
     print({ ...summary, applied: args.includes('--apply'), result, files: plan.files.map(({ content, ...f }) => f) });
@@ -55,7 +71,7 @@ try {
     const id = option('--id');
     print(id ? await knowledge.read(id) : { provenance: knowledge.provenance, rules: knowledge.search({ query: option('--query', ''), project: profile.project }) });
   } else {
-    process.stdout.write('iho-test init --project PATH [--apply] [--pm npm|yarn|pnpm] [--no-install] [--no-verify]\niho-test doctor --project PATH [--run]\niho-test rules --project PATH [--query TEXT | --id ID]\n');
+    process.stdout.write('iho-test init --project PATH [--apply] [--pm npm|yarn|pnpm] [--registry URL] [--no-install] [--no-verify]\niho-test doctor --project PATH [--run]\niho-test rules --project PATH [--query TEXT | --id ID]\n');
     if (command && command !== '--help') process.exitCode = 1;
   }
 } catch (e) { print({ ok: false, code: e.code ?? 'ERROR', message: e.message }); process.exitCode = 1; }

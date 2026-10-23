@@ -6,7 +6,7 @@
 
 ## 从零接入
 
-要求：已有 Vue 3 应用的 package.json；Node 满足所选 Vitest/Vite engines；可用的 npm、Yarn 或 pnpm。工具不会把 Vue 2 应用迁移成 Vue 3。
+要求：已有 Vue 3 应用的 package.json；Node 满足所选 Vitest/Vite 及传递依赖的 engines；可用的 npm、Yarn 或 pnpm。当前建议 Node 24.15 以上的 24 LTS，已在本机 Node 24.22.1 用于 Yarn 项目依赖安装。工具不安装系统 Node，也不会把 Vue 2 应用迁移成 Vue 3。
 
 ```sh
 git clone https://github.com/cnhis-frontend/iho-e2e.git
@@ -23,6 +23,8 @@ node bin/iho-test.mjs init --project /absolute/path/to/iho-project --apply
 4. 运行环境冒烟与测试类型检查；失败则明确报告初始化未完成。
 
 重复执行会保留定制文件和已有脚本。`--no-install` 或 `--no-verify` 适合受限环境，但对应状态仍为未完成。工具不启用插件，也不访问真实业务 API。
+
+默认使用项目已有包源。镜像缺少所选版本时，可显式传入 `--registry https://registry.npmjs.org`；此参数只用于本次安装，不改项目 npmrc。私有依赖仍应遵循项目的 registry 配置。安装日志会保留 Node engines 和包源错误，初始化不会忽略它们后宣称成功。
 
 环境冒烟包含真实 Vue SFC 表单操作与 MSW 请求往返，位于 `tests/iho-env`。**它不算业务流程覆盖。** 接下来按 [项目适配说明](docs/project-adaptation.md) 接入真实页面，完成 `tests/flows` 用例，再运行：
 
@@ -62,6 +64,7 @@ node bin/iho-test.mjs rules --project /absolute/path/to/iho-project --id iho.beh
 
 ```sh
 npm test
+npm run test:bootstrap
 ```
 
-工具箱本身无第三方运行依赖。初始化业务项目时会按计划安装测试依赖。发布到 npm 尚未配置，当前通过源码 checkout 使用。
+工具箱本身无第三方运行依赖。`test:bootstrap` 会创建隔离的 work/ 项目并真实下载安装测试依赖，验证从零搭建、幂等性、空套件与漏声明请求检测、实际 DOM 用例及类型检查。发布到 npm 尚未配置，当前通过源码 checkout 使用。

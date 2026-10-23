@@ -4,6 +4,7 @@ import { mkdtemp, writeFile, readFile, mkdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { initializationPlan, applyInitialization, diagnose, loadProjectKnowledge } from '../lib/project.mjs';
+import { checkNode, packageManager } from '../lib/bootstrap.mjs';
 
 async function project(t) {
   const root = await mkdtemp(join(tmpdir(), 'iho-project-'));
@@ -47,4 +48,37 @@ test('initialization does not overwrite a rule customized before migration', asy
   const report = await diagnose(root);
   assert.equal(report.checks.find(c => c.name === 'knowledge').code, 'VERSION_MISMATCH');
   assert.equal(await readFile(join(root, 'tests/knowledge/behavior-testing.md'), 'utf8'), 'project-specific rules');
+});
+
+test('initialization detects the existing package manager and preserves custom scripts', async t => {
+  const root = await project(t);
+  await writeFile(join(root, 'yarn.lock'), '# existing Yarn lock\n');
+  const pkg = { name: 'sample-ui', dependencies: { vue: '3.5.13' }, scripts: { 'test:flows': 'vitest run --config custom.ts' } };
+  await writeFile(join(root, 'package.json'), JSON.stringify(pkg));
+  const plan = await initializationPlan(root);
+  assert.equal(plan.packageManager, 'yarn');
+  assert.equal(plan.scriptAdditions['test:flows'], undefined);
+  await applyInitialization(plan, { install: false });
+  assert.equal(JSON.parse(await readFile(join(root, 'package.json'), 'utf8')).scripts['test:flows'], pkg.scripts['test:flows']);
+  await writeFile(join(root, 'package-lock.json'), '{}');
+  await assert.rejects(packageManager(root, pkg), /multiple lockfiles/);
+});
+
+test('unsupported runtime and non-Vue3 applications fail before modifying files', async t => {
+  assert.throws(() => checkNode('20.19.0'), /incompatible/);
+  assert.throws(() => checkNode('23.1.0'), /incompatible/);
+  assert.doesNotThrow(() => checkNode('22.14.0'));
+  const root = await project(t);
+  await writeFile(join(root, 'package.json'), JSON.stringify({ dependencies: { vue: '2.7.0' } }));
+  await assert.rejects(initializationPlan(root), /Vue 3/);
+  await assert.rejects(readFile(join(root, 'iho-test.config.json')), { code: 'ENOENT' });
+});
+
+test('test typechecking inherits existing module aliases', async t => {
+  const root = await project(t);
+  await writeFile(join(root, 'tsconfig.json'), JSON.stringify({ compilerOptions: { paths: { '@module/*': ['./src/module/*'] } } }));
+  await applyInitialization(await initializationPlan(root), { install: false });
+  const tsconfig = JSON.parse(await readFile(join(root, 'tsconfig.iho-tests.json'), 'utf8'));
+  assert.equal(tsconfig.extends, './tsconfig.json');
+  assert.equal(tsconfig.compilerOptions.paths, undefined, 'keep application paths inherited instead of replacing them');
 });
