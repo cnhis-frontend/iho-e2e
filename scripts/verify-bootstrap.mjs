@@ -12,12 +12,15 @@ console.log(`Fresh verification project: ${project}`);
 await writeFile(join(project, 'package.json'), JSON.stringify({ name: 'iho-bootstrap-verification', private: true, type: 'module', dependencies: { vue: '3.5.13' } }, null, 2));
 
 async function cli(args, expected = 0) {
+  let stdout = '';
   const code = await new Promise((done, reject) => {
-    const child = spawn(process.execPath, [resolve(repo, 'bin/iho-test.mjs'), ...args, '--project', project], { stdio: 'inherit', windowsHide: true });
+    const child = spawn(process.execPath, [resolve(repo, 'bin/iho-test.mjs'), ...args, '--project', project], { stdio: ['ignore', 'pipe', 'inherit'], windowsHide: true });
+    child.stdout.on('data', data => { stdout += data; process.stdout.write(data); });
     child.on('error', reject);
     child.on('exit', code => done(code));
   });
   assert.equal(code, expected, `Unexpected CLI exit for ${args.join(' ')}`);
+  return stdout;
 }
 
 await cli(['init', '--apply']);
@@ -35,7 +38,8 @@ test('swallowed undeclared request is still rejected', async () => {
   await fetch('http://iho-test.invalid/undeclared').catch(() => undefined);
 });
 `);
-await cli(['doctor', '--run'], 1);
+const negativeReport = JSON.parse(await cli(['doctor', '--run'], 1));
+assert.match(JSON.stringify(negativeReport.execution[0].failures), /Unspecified network requests/);
 await rm(negative);
 
 // A real component is used here to test doctor integration, not to claim IHO business coverage.

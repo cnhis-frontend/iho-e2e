@@ -38,14 +38,22 @@ async function runChecks(report) {
       let count;
       let skipped;
       let flowSuccess;
+      let failures;
       if (kind === 'flows' && await exists(output)) {
         const result = await readJson(output);
         count = result.numPassedTests;
         skipped = (result.numPendingTests ?? 0) + (result.numTodoTests ?? 0);
         flowSuccess = result.success === true && result.numFailedTests === 0;
+        failures = (result.testResults ?? []).filter(file => file.status === 'failed').map(file => ({
+          file: file.name,
+          message: file.message?.slice(0, 6000),
+          assertions: (file.assertionResults ?? []).filter(a => a.status === 'failed').map(a => ({
+            title: a.fullName ?? a.title, messages: (a.failureMessages ?? []).map(m => m.slice(0, 6000)),
+          })),
+        }));
       }
       const ok = child.status === 0 && (kind !== 'flows' || (flowSuccess && count > 0 && skipped === 0));
-      results.push({ script: name, ok, exitCode: child.status, passed: count, skipped, error: child.error?.message,
+      results.push({ script: name, ok, exitCode: child.status, passed: count, skipped, failures, error: child.error?.message,
         output: [child.stdout, child.stderr].filter(Boolean).join('\n').slice(-14000) });
     }
     report.execution = results;
