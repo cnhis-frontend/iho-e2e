@@ -66,7 +66,7 @@ node bin/iho-test.mjs rules --project /absolute/path/to/iho-project --id iho.beh
 
 支持本地目录、固定 Git commit 和 OpenViking 提供方。Git 提供方读取指定提交中的文件，忽略未提交内容；当前 checkout HEAD 必须匹配配置。OpenViking 读取同样的规则 catalog，通过 GET `/api/v1/content/read` 获取全文，校验摘要；不写记忆、不启用插件。检索是清单关键词筛选，不是语义检索。
 
-配置示例参见 [知识提供方](docs/knowledge-providers.md)。OpenViking 目前仅通过离线协议测试，真实服务联调尚未执行，需遵循用户对开启/连接的授权要求。
+配置示例参见 [知识提供方](docs/knowledge-providers.md)。OpenViking 已通过离线协议测试和一次获授权的真实服务联调，范围与证据见 [联调记录](docs/openviking-live-validation.md)；其他部署仍需验证接口与规则内容，连接或启用插件遵循用户授权。
 
 ## 验证工具箱
 

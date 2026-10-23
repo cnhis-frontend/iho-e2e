@@ -6,4 +6,4 @@ When changing a provider or bootstrap operation, run `npm test`. Keep generated 
 
 Skill authoring follows skill-creator and writing-for-agents when available. Common rule content belongs in the versioned knowledge catalog; skills explain how to retrieve and apply it. Record provenance for imported examples and verify them against real project results.
 
-OpenViking integration is currently offline only. Do not enable an OpenViking plugin or connect to the user's service without prior user agreement. HTTP adapter tests use injected responses and do not prove live compatibility.
+OpenViking live validation passed on the authorized deployment on 2026-10-23; see docs/openviking-live-validation.md for evidence and scope. Obtain user agreement before connecting to their service or enabling a plugin; existing session authorization applies. Automated adapter tests use injected responses and do not prove compatibility with every deployment. The memory plugin is not required and remains disabled in the three pilot projects.

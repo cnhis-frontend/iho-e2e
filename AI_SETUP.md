@@ -75,7 +75,7 @@ node "<工具包目录>/bin/iho-test.mjs" info
 | --- | --- | --- |
 | 本地 `local` | 使用初始化生成的规则快照，保留 catalog、正文摘要与 LF 约定；用户指定已有目录时核实其结构 | 使用自有规则时的目录位置；采用内置快照无需补充信息 |
 | Git `git` | 准备独立 checkout，读取规则目录；将用户选择的版本解析并固定为完整提交 SHA，确保 checkout HEAD 匹配 | 仓库地址或已有 checkout 路径、规则子目录、希望使用的版本；缺少访问权限时请用户在本机完成认证 |
-| OpenViking `openviking` | 获得连接同意后核对部署接口，配置并验证规则读取；当前适配器仅经过离线协议测试 | 服务 `baseUrl`、资源 `rootUri`、catalog 相对路径，以及需要认证时使用的环境变量名 |
+| OpenViking `openviking` | 获得连接同意后核对部署接口，配置并验证规则读取；适配器已通过一次真实服务联调，新部署仍需验收 | 服务 `baseUrl`、资源 `rootUri`、catalog 相对路径，以及需要认证时使用的环境变量名 |
 
 配置任一来源前，读取工具包 checkout 中的 [知识提供方配置](docs/knowledge-providers.md)，按其中 schema 写入项目 profile 的 `knowledge` 字段。该文件随工具包取得，单独收到本文的 AI 应从第 2 步准备的 checkout 读取。CLI 初始化默认生成本地快照，不能把它当作已经完成用户选择的 Git 或 OpenViking 配置；在下一步生成或保留完整 profile 后，仅更新所需知识字段，保留其他项目映射。
 
