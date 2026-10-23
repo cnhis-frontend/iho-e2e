@@ -17,7 +17,7 @@ async function cli(args, expected = 0) {
     const child = spawn(process.execPath, [resolve(repo, 'bin/iho-test.mjs'), ...args, '--project', project], { stdio: ['ignore', 'pipe', 'inherit'], windowsHide: true });
     child.stdout.on('data', data => { stdout += data; process.stdout.write(data); });
     child.on('error', reject);
-    child.on('exit', code => done(code));
+    child.on('close', code => done(code));
   });
   assert.equal(code, expected, `Unexpected CLI exit for ${args.join(' ')}`);
   return stdout;
