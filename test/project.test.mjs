@@ -82,3 +82,19 @@ test('test typechecking inherits existing module aliases', async t => {
   assert.equal(tsconfig.extends, './tsconfig.json');
   assert.equal(tsconfig.compilerOptions.paths, undefined, 'keep application paths inherited instead of replacing them');
 });
+
+test('an adopted project keeps its existing test framework instead of generating another', async t => {
+  const root = await project(t);
+  await writeFile(join(root, 'package.json'), JSON.stringify({ name: 'sample-ui', dependencies: { vue: '3.5.13' },
+    scripts: { 'test:behavior': 'vitest run tests/behavior', 'types:behavior': 'vue-tsc --noEmit -p tests.json' } }));
+  const profile = { schemaVersion: 1, project: 'sample-ui', flowConfig: 'vitest.config.ts', flowDirectory: 'tests/behavior',
+    knowledge: { type: 'local', root: 'tests/knowledge' }, scripts: { flows: 'test:behavior', types: 'types:behavior' } };
+  await writeFile(join(root, 'iho-test.config.json'), JSON.stringify(profile));
+  const plan = await initializationPlan(root);
+  assert.equal(plan.mode, 'existing-environment');
+  assert.deepEqual(plan.scriptAdditions, {});
+  assert.ok(!plan.files.some(f => f.path === 'vitest.iho.config.ts'));
+  await applyInitialization(plan, { install: false });
+  await assert.rejects(readFile(join(root, 'vitest.iho.config.ts')), { code: 'ENOENT' });
+  assert.deepEqual(JSON.parse(await readFile(join(root, 'iho-test.config.json'), 'utf8')), profile);
+});

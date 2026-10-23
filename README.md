@@ -32,7 +32,7 @@ node bin/iho-test.mjs init --project /absolute/path/to/iho-project --apply
 node bin/iho-test.mjs doctor --project /absolute/path/to/iho-project --run
 ```
 
-已有环境可在 `iho-test.config.json` 映射现有 scripts、flowConfig、flowDirectory 和 documentation。`doctor` 默认静态检查，`--run` 才运行流程与类型检查；空用例或跳过用例不会被判定为通过。
+已有环境可在 `iho-test.config.json` 映射现有 scripts、flowConfig、flowDirectory 和 documentation。初始化识别到该 profile 指向既有测试配置时，会复用映射的命令并补缺失依赖，不再生成另一套 starter。`doctor` 默认静态检查，`--run` 才运行流程与类型检查；空用例或跳过用例不会被判定为通过。
 
 ## AI 开发接入
 

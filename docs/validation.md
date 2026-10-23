@@ -4,7 +4,7 @@
 
 ## 工具箱
 
-- `npm test`：12 项通过，覆盖知识来源一致性、版本变化、不可用/权限拒绝、固定 Git 提交、初始化幂等、定制配置保留、包管理器选择、Node/Vue 前置条件和 TypeScript 别名继承。
+- `npm test`：13 项通过，覆盖知识来源一致性、版本变化、不可用/权限拒绝、固定 Git 提交、初始化幂等、定制配置保留、包管理器选择、Node/Vue 前置条件、TypeScript 别名继承，以及既有 profile 避免生成并行环境。
 - `npm run test:bootstrap`：通过。从仅声明 Vue 3.5.13 的隔离项目开始，真实安装测试依赖，Vue SFC 表单/DOM/MSW 环境冒烟及类型检查通过。
 - 同一自动验证确认：重复初始化计划不产生变更；空业务套件失败；被业务 catch 的漏声明网络请求仍失败；实际 DOM 交互用例被 doctor 正确接受。
 - skill-creator 的 quick_validate：两个 skill 均通过。Windows junction 安装、重复安装及经链接运行 CLI 均验证通过。
