@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "rules": [
+    {
+      "id": "iho.behavior-testing",
+      "title": "前端行为测试公共规则",
+      "ref": "behavior-testing.md",
+      "status": "accepted",
+      "projects": [
+        "*"
+      ],
+      "tags": [
+        "testing",
+        "集成",
+        "行为",
+        "MSW",
+        "测试"
+      ],
+      "version": "1",
+      "sha256": "01ba6b57c23363f79db7975d37f777c95d448269fd4cf716c0a482ad68e7e09c"
+    }
+  ]
+}
