@@ -6,7 +6,7 @@ The CLI can build a complete generic Vue 3 test environment. A real IHO page sti
 
 Keep existing Vitest plugins, aliases, compiler defines and dependency inlining. A separate flow configuration can extend the existing configuration, but verify array merging: explicitly select setup files and includes so legacy tests do not leak into the flow suite. Set the actual configuration and script paths in `iho-test.config.json`.
 
-Generated `vitest.iho.config.ts` is an independent starter, not a replacement for business-specific configuration. It includes a separate `tests/iho-env` fixture to prove Vue SFC compilation, DOM interaction and MSW interception. Its passing result is not application coverage. The flow command targets `tests/flows` and fails when that suite is empty.
+Generated `vitest.iho.config.ts` is an independent starter, not a replacement for business-specific configuration. Initialization uses a temporary `tests/.iho-env-*` fixture to prove Vue SFC compilation, DOM interaction and MSW interception, then removes its unchanged files after success. Its passing result is not application coverage. The flow command targets `tests/flows` and fails when that suite is empty.
 
 ## Page harness
 
@@ -34,3 +34,5 @@ Local snapshots and the Git provider require no service. The OpenViking adapter 
 ## Acceptance
 
 The scaffold's environment test and types must pass. The repository's genuine flow suite must contain passing, non-skipped cases and demonstrate at least one meaningful failure condition. `doctor --run` invokes the configured flow and typecheck scripts, checks Vitest JSON counts and fails for empty/skipped suites. This checks execution evidence, not the semantic quality of the tests; review the actual flow and its requirement separately.
+
+After verification, remove temporary examples, debug-only code and unreferenced probe helpers introduced during setup. Preserve shared support and meaningful regression tests; explicitly record any probe kept for ongoing coverage. Update scripts/config/imports/docs that reference removed files, and rerun affected checks. Failed diagnostics and project-modified files require review rather than blanket deletion. Environment-only setup may finish without business coverage; do not leave dummy tests to conceal that distinction.

@@ -28,13 +28,13 @@ node bin/iho-test.mjs init --project /absolute/path/to/iho-project --apply
 1. 根据 packageManager/锁文件选择包管理器；存在冲突时报告，不生成第二套锁文件。
 2. 安装缺失的 Vitest、happy-dom、Vue SFC/JSX 测试工具、MSW 和类型检查依赖。已声明的版本保留，以实际验证判断兼容性。
 3. 创建独立测试配置、HTTP/setup、测试 tsconfig、运行命令和固定公共规则快照。
-4. 运行环境冒烟与测试类型检查；失败则明确报告初始化未完成。
+4. 在独立临时目录运行环境冒烟及其类型检查，通过后清理本次生成且未被修改的文件，再检查正式测试类型；失败则保留诊断文件并报告初始化未完成。
 
 重复执行会保留定制文件和已有脚本。`--no-install` 或 `--no-verify` 适合受限环境，但对应状态仍为未完成。工具不启用插件，也不访问真实业务 API。
 
 默认使用项目已有包源。镜像缺少所选版本时，可显式传入 `--registry https://registry.npmjs.org`；此参数只用于本次安装，不改项目 npmrc。私有依赖仍应遵循项目的 registry 配置。安装日志会保留 Node engines 和包源错误，初始化不会忽略它们后宣称成功。
 
-环境冒烟包含真实 Vue SFC 表单操作与 MSW 请求往返，位于 `tests/iho-env`。**它不算业务流程覆盖。** 接下来按 [项目适配说明](docs/project-adaptation.md) 接入真实页面，完成 `tests/flows` 用例，再运行：
+环境冒烟包含真实 Vue SFC 表单操作与 MSW 请求往返，验证时临时创建于 `tests/.iho-env-*`，成功后移除，不新增长期 `test:env` 脚本。**它不算业务流程覆盖。** AI 另外创建的临时测试、调试代码和只被这些文件引用的辅助代码，也应在验收后清理并修正引用；复用配置、HTTP/setup 和真实业务回归保留。接下来按 [项目适配说明](docs/project-adaptation.md) 接入真实页面，完成 `tests/flows` 用例，再运行：
 
 ```sh
 node bin/iho-test.mjs doctor --project /absolute/path/to/iho-project --run

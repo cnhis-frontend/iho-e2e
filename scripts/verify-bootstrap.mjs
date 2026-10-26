@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, rm, readdir, readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { join, resolve } from 'node:path';
 import { spawn } from 'node:child_process';
@@ -24,6 +24,8 @@ async function cli(args, expected = 0) {
 }
 
 await cli(['init', '--apply']);
+assert.ok(!(await readdir(join(project, 'tests'))).some(name => name.startsWith('.iho-env-') || name === 'iho-env'));
+assert.equal(JSON.parse(await readFile(join(project, 'package.json'), 'utf8')).scripts['test:env'], undefined);
 const plan = await initializationPlan(project);
 assert.ok(plan.files.every(f => f.action === 'unchanged'));
 assert.deepEqual(plan.missingDependencies, {});
@@ -58,6 +60,6 @@ test('doctor accepts an executed DOM behavior', async () => {
 });
 `);
 await cli(['doctor', '--run']);
-const report = { project, passed: true, checks: ['dependency-install', 'sfc-dom-msw-smoke', 'test-typecheck', 'idempotent-plan', 'empty-flow-rejected', 'caught-unhandled-network-rejected', 'executed-flow-accepted'] };
+const report = { project, passed: true, checks: ['dependency-install', 'sfc-dom-msw-smoke', 'temporary-files-cleaned', 'test-typecheck', 'idempotent-plan', 'empty-flow-rejected', 'caught-unhandled-network-rejected', 'executed-flow-accepted'] };
 await writeFile(resolve(repo, 'work/bootstrap-verification-latest.json'), JSON.stringify(report, null, 2) + '\n');
 console.log(JSON.stringify(report, null, 2));
