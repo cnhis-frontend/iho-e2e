@@ -24,6 +24,6 @@ catalog 与 Markdown 文档需已经存在于指定资源目录；本工具不�
 
 提供方统一返回规则元数据、正文、来源和内容摘要。默认检索只返回 accepted 规则，draft/memory 必须明确指定，且不能据此自动升级为强制规范。状态错误区分 NOT_FOUND、UNAVAILABLE、ACCESS_DENIED、VERSION_MISMATCH 和 INVALID；服务故障不返回空的成功结果。
 
-接口依据：OpenViking 本地源码提交 `97c0ceb7720c7d14e988a6d322f020c0024e800b` 的 `docs/en/api/12-content.md` 与 `01-overview.md`。自动测试通过注入 fetch 响应验证协议；2026-10-23 已在用户授权的云服务上通过真实规则读取、摘要校验、CLI 与错误分支验证，见 [联调记录](openviking-live-validation.md)。该结果仅证明此次部署的接口兼容性，新部署仍需核对契约。
+接口依据：OpenViking 源码提交 `97c0ceb7720c7d14e988a6d322f020c0024e800b` 的 `docs/en/api/12-content.md` 与 `01-overview.md`。自动测试通过注入 fetch 响应验证协议；已通过一次获授权的真实服务验证，范围与复验方法见 [联调说明](openviking-live-validation.md)。新部署仍需核对接口契约，具体服务配置由使用方提供。
 
 接入其他知识库时，实现与 createKnowledge 相同的 search/read/provenance 接口，并对来源、内容变化及不可用情况加入行为测试。测试运行代码本身不调用此接口。

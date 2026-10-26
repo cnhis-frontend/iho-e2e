@@ -12,7 +12,7 @@ async function fixture(t) {
   const content = 'Verify a visible result after a user action.\n';
   const rules = [
     { id: 'behavior', title: '行为测试', ref: 'rule.md', status: 'accepted', projects: ['*'], sha256: digest(content) },
-    { id: 'draft', title: '未确认经验', ref: 'rule.md', status: 'memory', projects: ['expense'], sha256: digest(content) },
+    { id: 'draft', title: '未确认经验', ref: 'rule.md', status: 'memory', projects: ['sample-alpha'], sha256: digest(content) },
   ];
   const catalog = JSON.stringify({ schemaVersion: 1, rules });
   await writeFile(join(root, 'rule.md'), content);
@@ -32,7 +32,7 @@ test('local and OpenViking providers expose identical pinned rule contents', asy
     },
   });
   const local = await createKnowledge({ type: 'local', root: f.root });
-  assert.deepEqual(local.search({ project: 'otc' }), remote.search({ project: 'otc' }));
+  assert.deepEqual(local.search({ project: 'sample-beta' }), remote.search({ project: 'sample-beta' }));
   assert.equal(local.search().length, 1, 'memory is not promoted into accepted rules');
   assert.equal((await remote.read('behavior')).content, (await local.read('behavior')).content);
   assert.equal(requests[0].init.headers.Authorization, 'Bearer fake-test-key');

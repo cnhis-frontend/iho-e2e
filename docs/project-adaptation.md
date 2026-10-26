@@ -16,14 +16,14 @@ Project singleton stores, request caches, global event buses and discrete dialog
 
 For layout-dependent widgets, first identify the exact missing DOM primitive. Use a narrow adapter with documented limitations. Replacing the whole business table or form would remove the behavior being tested.
 
-## Lessons verified in the pilot applications
+## Common integration concerns
 
-- OTC confirmation promises settle in the real modal transition's `onAfterLeave`. Vue Test Utils transition stubs prevented the submit sequence from completing; retaining real Transition/Teleport fixed the flow. Applications mounted through their production `createApp` path do not necessarily have this stub, so inspect the actual mounting path first.
-- A successful toast can precede the list refresh. OTC now waits for the server-returned row status and cleared selection before teardown; otherwise the refresh may leak into the next scenario.
-- MIIAS uses a virtual classification tree. happy-dom did not produce its initial viewport ResizeObserver notification; a narrow viewport notification adapter allowed the real tree to render. The adapter does not construct business rows or substitute the tree.
-- The business component library imports unused RTC SDKs. A call-failing fake at that external device interface keeps accidental usage visible while allowing unrelated page flows to load.
-- Whole-library prebundling can pull native canvas binaries into an unsuitable compilation path. The pilots kept business/UI libraries in source transformation and optimized only observed icon packages. Measure cold start separately from interaction time; do not promise a universal speedup.
-- Prefer the environment's supported teardown and production disposers over stacking global timer spies. A pilot timer wrapper recursively captured its own spy and invalidated the suite; any cleanup abstraction must survive repeated mounting and reordered cases.
+- A dialog promise may settle in a transition callback such as `onAfterLeave`. Check whether transition stubs suppress that callback; retain the relevant Transition/Teleport behavior when the flow depends on it.
+- A successful toast can precede completion of a list refresh. Wait for the expected returned data and selection state before teardown so pending work cannot leak into another test.
+- Virtual lists and trees may require a viewport notification unavailable in the simulated DOM. Adapt the missing ResizeObserver capability narrowly; the adapter must not construct business rows or substitute the component.
+- A component library may import unused device or RTC SDKs. A call-failing fake at that external device interface keeps accidental usage visible while allowing unrelated flows to load.
+- Whole-library prebundling can pull native modules into an unsuitable compilation path. Preserve source transformation when required and optimize only dependencies supported by observed failures or measurements.
+- Prefer the environment's supported teardown and production disposers over stacking global timer spies. Validate cleanup across repeated mounting and reordered cases; a wrapper must not recursively capture its own spy.
 
 ## Knowledge
 

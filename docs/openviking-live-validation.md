@@ -1,57 +1,39 @@
-# OpenViking 真实服务联调
+# OpenViking 联调范围与复验方法
 
-验收时间：2026-10-23 17:00（Asia/Shanghai）。结论：现有 OpenViking 适配器在本次授权部署上通过验收，无需修改运行时代码。
+适配器曾于 2026-10-23 在获授权的真实服务上完成以下验证。此记录保留协议证据和复验方法；服务地址、资源目录、凭据及部署版本由使用方记录在自己的环境中。
 
-## 范围与准备
+## 已验证的行为
 
-用户先授权只读联调。服务连接和已有文档读取成功，但在可见的 engineering、projects 资源目录未找到工具包 catalog。用户随后明确授权在新目录新增 `catalog.json` 与 `behavior-testing.md`，用于完成验收。
-
-- 目标：`viking://resources/iho-behavior-testing-v1`。
-- 使用 toolkit `knowledge/` 中已确认的版本 1 公共规则，上传前核实目标文件不存在，上传后读取原文校验摘要。
-- 认证复用本机既有凭据，只在验证进程环境中注入 `IHO_KNOWLEDGE_TOKEN`；没有把凭据写入项目、日志或报告。
-- 使用部署已有的网关路径前缀及 Bearer 认证。部署的服务端构建版本未独立确认，源码参考版本不等同于部署版本。
-
-## 通过的验证
-
-| 检查 | 实际结果 |
+| 检查 | 结果 |
 | --- | --- |
-| 认证与已有中文路径文档读取 | HTTP 200，`status: ok`，`result` 为原文字符串 |
-| 两份新增规则文件写入与回读 | HTTP 200；远端内容与本地 SHA-256 一致 |
-| 实际 `createKnowledge` 加载远端 catalog、读取规则 | 成功；正文与本地提供方完全一致 |
+| Bearer 认证、网关路径前缀和中文文档路径 | HTTP 200，响应包含原文字符串 |
+| catalog 与规则正文回读 | SHA-256 与已固定的本地快照一致 |
+| 实际 createKnowledge 及 CLI 读取规则 | 成功，正文与本地提供方一致 |
 | accepted 规则关键词筛选及项目过滤 | 与本地提供方结果一致 |
-| 实际 CLI `rules --query 行为` | 退出码 0，来源为 `openviking` |
-| 实际 CLI `rules --id iho.behavior-testing` | 退出码 0，正文与本地一致 |
-| 故意配置错误 catalog 摘要 | `VERSION_MISMATCH`；未修改远端内容 |
-| 请求不存在的 catalog | 服务 HTTP 404，适配器 `NOT_FOUND` |
-| 不携带凭据读取 | 服务 HTTP 401，适配器 `ACCESS_DENIED` |
-| 读取不存在的规则 ID | `NOT_FOUND` |
-| 将已有 Markdown 当成 catalog 读取 | `INVALID`，没有将无效清单当成成功 |
+| 配置错误 catalog 摘要 | VERSION_MISMATCH |
+| 不存在的远端 catalog | 服务 HTTP 404，适配器 NOT_FOUND |
+| 不携带认证凭据 | 服务 HTTP 401，适配器 ACCESS_DENIED |
+| 不存在的规则 ID | NOT_FOUND |
+| 将 Markdown 正文当成 catalog | INVALID |
 
-固定摘要：
+验证使用标准 content/read 接口，查询参数 `raw=true`。无需启用 memory 插件。自动协议测试使用注入响应，真实验证的结果只适用于被验证的服务契约。
 
-```text
-catalog.json
-fa08418ae414688d9961b3f770f125498949a3c4766f36114f1481218b616b79
+## 在其他部署复验
 
-behavior-testing.md
-01ba6b57c23363f79db7975d37f777c95d448269fd4cf716c0a482ad68e7e09c
-```
-
-## 目录调整复验
-
-2026-10-23 17:04（Asia/Shanghai）按用户要求，将规则目录移至 resources 根目录下的上述目标。移动前确认目标不存在；移动后实际适配器读取与关键词筛选通过，catalog 和正文摘要均未改变，原 engineering 下的目录返回 HTTP 404。
-
-## 使用与边界
-
-可按 [知识提供方配置](knowledge-providers.md) 配置服务地址、上述 rootUri、catalog 和摘要，然后在有授权的环境中执行：
+1. 根据 [知识提供方配置](knowledge-providers.md) 设置 baseUrl、rootUri、catalog、tokenEnv 和已确认的摘要。占位示例 rootUri 为 `viking://resources/example-rules`。
+2. 确认用户已授权连接。凭据由本机环境变量提供，不写入项目或报告。
+3. 准备已存在的 catalog 与正文。若需要新增资源，先明确目标及写入范围；初始化工具不自动上传。
+4. 运行实际 CLI，并将来源、正文及摘要与已固定规则比较：
 
 ```sh
-node bin/iho-test.mjs rules --project "<项目路径>" --query 行为
-node bin/iho-test.mjs rules --project "<项目路径>" --id iho.behavior-testing
+node bin/iho-test.mjs rules --project "<项目路径>" --query "<关键词>"
+node bin/iho-test.mjs rules --project "<项目路径>" --id "<规则ID>"
 ```
 
-本次 CLI 使用独立验证目录，三个业务项目的知识来源保持本地快照，memory 插件保持禁用。验证不依赖该插件。
+5. 在独立验证配置中使用错误摘要、缺失资源路径及不携带凭据的请求，确认错误被正确区分；验证结果记录在使用方仓库。
 
-关键词检索是读取 catalog 后的本地筛选，不是 OpenViking 语义搜索。上传接口返回语义与向量处理已排队；本次验收针对原文读取，不代表后台索引已处理完成。未上传损坏正文来测试远端内容篡改，正文变更拒绝仍由现有离线自动测试覆盖；本次真实验证确认两份远端内容与已固定摘要一致。
+## 未验证的能力
 
-换服务地址、规则版本或认证配置后需重新验证。实际业务测试仍独立于在线知识服务和模型运行。
+上述检索是 catalog 关键词筛选，不是语义搜索。规则原文读取成功不代表异步语义或向量索引处理已完成。远端正文篡改拒绝由离线协议测试覆盖，真实验证只比较正常原文及固定摘要。
+
+服务或规则配置变化后重新验证；测试执行本身继续独立于在线知识服务和模型运行。

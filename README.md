@@ -14,7 +14,7 @@
 
 ## 从零接入
 
-要求：已有 Vue 3 应用的 package.json；Node 满足所选 Vitest/Vite 及传递依赖的 engines；可用的 npm、Yarn 或 pnpm。当前建议 Node 24.15 以上的 24 LTS，已在本机 Node 24.22.1 用于 Yarn 项目依赖安装。工具不安装系统 Node，也不会把 Vue 2 应用迁移成 Vue 3。
+要求：已有 Vue 3 应用的 package.json；Node 满足所选 Vitest/Vite 及传递依赖的 engines；可用的 npm、Yarn 或 pnpm。当前建议 Node 24.15 以上的 24 LTS，具体运行时验证记录见 [验证记录](docs/validation.md)。工具不安装系统 Node，也不会把 Vue 2 应用迁移成 Vue 3。
 
 ```sh
 git clone https://github.com/cnhis-frontend/iho-e2e.git
@@ -81,4 +81,4 @@ npm run test:bootstrap
 
 工具箱本身无第三方运行依赖。`test:bootstrap` 会创建隔离的 work/ 项目并真实下载安装测试依赖，验证从零搭建、幂等性、空套件与漏声明请求检测、实际 DOM 用例及类型检查。发布到 npm 尚未配置，当前通过源码 checkout 使用。
 
-实际接入情况见 [首批项目结果](docs/project-results.md)，命令与验证边界见 [验证记录](docs/validation.md)。
+项目验收按 [接入验收清单](docs/project-acceptance.md) 执行，工具包命令与验证边界见 [验证记录](docs/validation.md)。具体业务场景、接入结果及历史失败记录在使用方仓库中。
