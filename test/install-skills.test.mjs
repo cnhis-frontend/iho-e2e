@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, readFile, realpath, lstat, symlink, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, realpath, lstat, symlink, rm, cp, access } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -8,7 +8,7 @@ import { spawnSync } from 'node:child_process';
 
 const toolkit = fileURLToPath(new URL('../', import.meta.url));
 const names = ['iho-test-bootstrap', 'iho-behavior-testing'];
-const run = args => spawnSync(process.execPath, [resolve(toolkit, 'scripts/install-skills.mjs'), ...args], {
+const run = (args, source = toolkit) => spawnSync(process.execPath, [resolve(source, 'scripts/install-skills.mjs'), ...args], {
   encoding: 'utf8', windowsHide: true,
 });
 async function fixture(t, vue = '^3.5.13') {
@@ -18,25 +18,79 @@ async function fixture(t, vue = '^3.5.13') {
   return root;
 }
 
-test('skills install inside the project, work through links and preserve existing ignore rules on repeat', async t => {
+test('committed skill snapshots run after a fresh Git clone without the original toolkit', async t => {
+  const root = await fixture(t);
+  const first = run(['--project', root]);
+  assert.equal(first.status, 0, first.stderr);
+  const git = (args, cwd = root) => {
+    const result = spawnSync('git', args, { cwd, encoding: 'utf8', windowsHide: true });
+    assert.equal(result.status, 0, result.stderr);
+    return result.stdout;
+  };
+  git(['init']);
+  git(['config', 'core.autocrlf', 'true']);
+  git(['add', '.']);
+  git(['-c', 'user.name=Toolkit Tests', '-c', 'user.email=tests@example.invalid', 'commit', '-m', 'Project skills']);
+  const container = await fixture(t);
+  const clone = join(container, 'cloned-project');
+  git(['clone', '--no-hardlinks', root, clone]);
+  for (const name of names) {
+    const installed = join(clone, '.agents/skills', name);
+    assert.equal((await lstat(installed)).isSymbolicLink(), false);
+    const info = spawnSync(process.execPath, [join(installed, 'scripts/run.mjs'), 'info'], { encoding: 'utf8', windowsHide: true });
+    assert.equal(info.status, 0, info.stderr);
+    const resolved = JSON.parse(info.stdout);
+    assert.equal(await realpath(resolved.toolkitRoot), await realpath(join(clone, '.agents/skills/iho-test-bootstrap/toolkit')));
+    await access(resolved.adaptationGuide);
+    assert.ok(git(['ls-files', '.agents/skills/' + name], clone).includes('SKILL.md'));
+  }
+  const entry = join(clone, '.agents/skills/iho-test-bootstrap/scripts/run.mjs');
+  const init = spawnSync(process.execPath, [entry, 'init', '--project', clone, '--apply', '--no-install', '--no-verify'], { encoding: 'utf8', windowsHide: true });
+  assert.equal(init.status, 0, init.stdout + init.stderr);
+  const rules = spawnSync(process.execPath, [join(clone, '.agents/skills/iho-behavior-testing/scripts/run.mjs'), 'rules', '--project', clone, '--id', 'iho.behavior-testing'], { encoding: 'utf8', windowsHide: true });
+  assert.equal(rules.status, 0, rules.stdout + rules.stderr);
+  assert.equal(JSON.parse(rules.stdout).provider, 'local');
+  await assert.rejects(lstat(join(root, '.agents/skills/.gitignore')), { code: 'ENOENT' });
+  assert.equal(run(['--project', root]).status, 0);
+  assert.equal(git(['status', '--porcelain']), '', 'Repeat installation must leave the committed snapshot unchanged');
+});
+
+test('legacy project links migrate to ordinary files without deleting source or unrelated ignore rules', async t => {
   const root = await fixture(t);
   const destination = join(root, '.agents/skills');
   await mkdir(destination, { recursive: true });
-  await writeFile(join(destination, '.gitignore'), '/other-local-skill/\n');
-  const first = run(['--project', root]);
-  assert.equal(first.status, 0, first.stderr);
+  for (const name of names) await symlink(join(toolkit, 'skills', name), join(destination, name), process.platform === 'win32' ? 'junction' : 'dir');
+  await writeFile(join(destination, '.gitignore'), '/other-local-skill/\r\n/iho-test-bootstrap/\r\n/iho-behavior-testing/\r\n');
+  const result = run(['--project', root]);
+  assert.equal(result.status, 0, result.stderr);
   for (const name of names) {
-    const installed = join(destination, name);
-    assert.equal(await realpath(installed), await realpath(join(toolkit, 'skills', name)));
-    const info = spawnSync(process.execPath, [join(installed, 'scripts/run.mjs'), 'info'], { encoding: 'utf8', windowsHide: true });
-    assert.equal(info.status, 0, info.stderr);
-    assert.equal(await realpath(JSON.parse(info.stdout).toolkitRoot), await realpath(toolkit));
+    assert.equal((await lstat(join(destination, name))).isSymbolicLink(), false);
+    await access(join(toolkit, 'skills', name, 'SKILL.md'));
   }
-  const ignore = await readFile(join(destination, '.gitignore'), 'utf8');
-  assert.ok(ignore.startsWith('/other-local-skill/\n'));
-  for (const name of names) assert.ok(ignore.includes(`/${name}/`));
+  assert.equal(await readFile(join(destination, '.gitignore'), 'utf8'), '/other-local-skill/\r\n');
+  await writeFile(join(destination, '.gitignore'), '/iho-test-bootstrap/\n/iho-behavior-testing/\n');
   assert.equal(run(['--project', root]).status, 0);
-  assert.equal(await readFile(join(destination, '.gitignore'), 'utf8'), ignore);
+  await assert.rejects(lstat(join(destination, '.gitignore')), { code: 'ENOENT' });
+});
+
+test('managed snapshots upgrade cleanly but preserve project edits before updating either skill', async t => {
+  const root = await fixture(t);
+  assert.equal(run(['--project', root]).status, 0);
+  const source = await fixture(t);
+  for (const folder of ['skills', 'scripts', 'bin', 'lib', 'knowledge', 'docs']) await cp(join(toolkit, folder), join(source, folder), { recursive: true });
+  const sourceFile = join(source, 'skills/iho-test-bootstrap/SKILL.md');
+  const updated = (await readFile(sourceFile, 'utf8')).trimEnd() + '\n\nNew upstream guidance.\n';
+  await writeFile(sourceFile, updated);
+  const upgrade = run(['--project', root], source);
+  assert.equal(upgrade.status, 0, upgrade.stderr);
+  const installedFile = join(root, '.agents/skills/iho-test-bootstrap/SKILL.md');
+  assert.equal(await readFile(installedFile, 'utf8'), updated.replace(/\r\n/g, '\n'));
+  const edited = join(root, '.agents/skills/iho-behavior-testing/SKILL.md');
+  await writeFile(edited, 'Project customization');
+  await writeFile(sourceFile, updated + 'Another upstream change.\n');
+  assert.notEqual(run(['--project', root], source).status, 0);
+  assert.equal(await readFile(edited, 'utf8'), 'Project customization');
+  assert.equal(await readFile(installedFile, 'utf8'), updated.replace(/\r\n/g, '\n'));
 });
 
 test('a conflicting project skill is preserved before any other skill is installed', async t => {

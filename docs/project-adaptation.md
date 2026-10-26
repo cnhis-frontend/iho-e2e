@@ -29,7 +29,7 @@ For layout-dependent widgets, first identify the exact missing DOM primitive. Us
 
 The project profile points to a local directory, a pinned Git checkout, or an OpenViking directory containing the catalog and its referenced files. `rules` reads cataloged accepted rules with SHA-256 verification. It is deterministic catalog search, not semantic search. Reading a memory/draft by explicit ID does not turn it into an accepted rule.
 
-Local snapshots and the Git provider require no service. The OpenViking adapter uses the documented GET content/read API and makes no writes, recalls or commits. Live validation is pending explicit user agreement; current protocol tests inject HTTP responses. Keep that distinction in handoffs.
+Local snapshots and the Git provider require no service. The OpenViking adapter uses the documented GET content/read API and makes no writes, recalls or commits. One authorized deployment passed [live validation](openviking-live-validation.md); automated protocol tests inject HTTP responses. New deployments still require authorization and compatibility verification.
 
 ## Acceptance
 
