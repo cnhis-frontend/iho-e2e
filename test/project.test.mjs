@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { initializationPlan, applyInitialization, diagnose, loadProjectKnowledge } from '../lib/project.mjs';
 import { checkNode, packageManager, runPackage } from '../lib/bootstrap.mjs';
+import { digest } from '../lib/knowledge.mjs';
 
 async function project(t) {
   const root = await mkdtemp(join(tmpdir(), 'iho-project-'));
@@ -50,6 +51,32 @@ test('initialization does not overwrite a rule customized before migration', asy
   assert.equal(await readFile(join(root, 'tests/knowledge/behavior-testing.md'), 'utf8'), 'project-specific rules');
 });
 
+test('new host acceptance preserves an existing pinned rule and custom host command', async t => {
+  const root = await project(t);
+  await applyInitialization(await initializationPlan(root), { install: false });
+  const profilePath = join(root, 'iho-test.config.json');
+  const profile = JSON.parse(await readFile(profilePath, 'utf8'));
+  const catalogPath = join(root, 'tests/knowledge/catalog.json');
+  const catalog = JSON.parse(await readFile(catalogPath, 'utf8'));
+  const oldRule = 'Existing accepted project rule, pinned before host acceptance.\n';
+  catalog.rules[0].version = '1';
+  catalog.rules[0].sha256 = digest(oldRule);
+  const oldCatalog = JSON.stringify(catalog);
+  profile.knowledge.catalogSha256 = digest(oldCatalog);
+  profile.scripts.host = 'verify:application';
+  await writeFile(catalogPath, oldCatalog);
+  await writeFile(join(root, 'tests/knowledge/behavior-testing.md'), oldRule);
+  await writeFile(profilePath, JSON.stringify(profile));
+  const pkg = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'));
+  pkg.scripts['verify:application'] = 'vitest run --config custom-host.ts';
+  await writeFile(join(root, 'package.json'), JSON.stringify(pkg));
+  await applyInitialization(await initializationPlan(root), { install: false });
+  assert.deepEqual(JSON.parse(await readFile(profilePath, 'utf8')), profile);
+  const { knowledge } = await loadProjectKnowledge(root);
+  assert.equal((await knowledge.read('iho.behavior-testing')).content, oldRule);
+  assert.equal(JSON.parse(await readFile(join(root, 'package.json'), 'utf8')).scripts['verify:application'], pkg.scripts['verify:application']);
+});
+
 test('initialization detects the existing package manager and preserves custom scripts', async t => {
   const root = await project(t);
   await writeFile(join(root, 'yarn.lock'), '# existing Yarn lock\n');
@@ -92,6 +119,7 @@ test('an adopted project keeps its existing test framework instead of generating
   await writeFile(join(root, 'iho-test.config.json'), JSON.stringify(profile));
   const plan = await initializationPlan(root);
   assert.equal(plan.mode, 'existing-environment');
+  assert.deepEqual(plan.verificationScripts, { types: 'types:behavior' });
   assert.deepEqual(plan.scriptAdditions, {});
   assert.ok(!plan.files.some(f => f.path === 'vitest.iho.config.ts'));
   await applyInitialization(plan, { install: false });

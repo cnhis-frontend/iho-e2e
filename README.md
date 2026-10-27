@@ -34,13 +34,21 @@ node bin/iho-test.mjs init --project /absolute/path/to/iho-project --apply
 
 默认使用项目已有包源。镜像缺少所选版本时，可显式传入 `--registry https://registry.npmjs.org`；此参数只用于本次安装，不改项目 npmrc。私有依赖仍应遵循项目的 registry 配置。安装日志会保留 Node engines 和包源错误，初始化不会忽略它们后宣称成功。
 
-环境冒烟包含真实 Vue SFC 表单操作与 MSW 请求往返，验证时临时创建于 `tests/.iho-env-*`，成功后移除，不新增长期 `test:env` 脚本。**它不算业务流程覆盖。** AI 另外创建的临时测试、调试代码和只被这些文件引用的辅助代码，也应在验收后清理并修正引用；复用配置、HTTP/setup 和真实业务回归保留。接下来按 [项目适配说明](docs/project-adaptation.md) 接入真实页面，完成 `tests/flows` 用例，再运行：
+环境冒烟包含真实 Vue SFC 表单操作与 MSW 请求往返，验证时临时创建于 `tests/.iho-env-*`，成功后移除，不新增长期 `test:env` 脚本。**它只证明基础工具链。** 默认初始化接下来按 [项目适配说明](docs/project-adaptation.md#application-host-acceptance) 验证真实模块加载和应用宿主，在 profile 中映射 `scripts.host`，运行：
+
+```sh
+node bin/iho-test.mjs doctor --project /absolute/path/to/iho-project --host
+```
+
+该命令验证独立宿主契约套件和类型检查，不要求业务用例。具体宿主、消息接口和设备替身由应用仓库维护。保留可复用宿主与长期契约测试，清理临时探针。基础工具链、应用宿主和业务流程分别报告，宿主通过只代表已验证的模块与端口。
+
+用户要求业务接入时，再完成 `tests/flows` 的真实用例并运行：
 
 ```sh
 node bin/iho-test.mjs doctor --project /absolute/path/to/iho-project --run
 ```
 
-已有环境可在 `iho-test.config.json` 映射现有 scripts、flowConfig、flowDirectory 和 documentation。初始化识别到该 profile 指向既有测试配置时，会复用映射的命令并补缺失依赖，不再生成另一套 starter。`doctor` 默认静态检查，`--run` 才运行流程与类型检查；空用例或跳过用例不会被判定为通过。
+已有环境可在 `iho-test.config.json` 映射现有 scripts、flowConfig、flowDirectory 和 documentation。初始化识别到该 profile 指向既有测试配置时，会复用映射的命令并补缺失依赖，不再生成另一套 starter。`doctor` 默认静态检查；`--host` 运行宿主和类型，`--run` 运行已配置的宿主、业务流程和类型。空用例或跳过用例不会通过。旧 profile 未映射 `scripts.host` 时仍可运行原业务检查，但明确报告宿主 `not-configured`，不能作为宿主验收。
 
 ## AI 开发接入
 

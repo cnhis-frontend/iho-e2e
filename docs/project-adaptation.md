@@ -10,11 +10,31 @@ Generated `vitest.iho.config.ts` is an independent starter, not a replacement fo
 
 ## Page harness
 
-Mount the real page with real UI providers, business descendants, Pinia and the relevant router. Supply qiankun/host values at the host interface and configure HTTP responses at the network boundary. A user action helper must dispatch a DOM interaction, not call the page's private method. Keep the page's feedback/confirmation UI observable.
+Mount the real page with its business descendants and whichever UI providers, state management and router the application actually uses. Supply microfrontend/host values only when that boundary exists, and configure HTTP responses at the network boundary. A user action helper must dispatch a DOM interaction, not call the page's private method. Keep the page's feedback/confirmation UI observable.
 
 Project singleton stores, request caches, global event buses and discrete dialogs require explicit lifecycle handling. Standard Testing Library cleanup is only the base; add project disposers where the real application owns other state.
 
 For layout-dependent widgets, first identify the exact missing DOM primitive. Use a narrow adapter with documented limitations. Replacing the whole business table or form would remove the behavior being tested.
+
+## Application host acceptance
+
+Every initialization applies the cataloged rule `iho.behavior-testing` (Initialization and acceptance layers). Generic smoke establishes only the base toolchain. Before reporting application-host acceptance, inspect the application's startup dependencies and validate representative real module imports with its final test plugins, aliases and setup. This does not require inventing a business requirement or invoking real devices/services.
+
+Build a capability inventory from dependencies, startup code and existing test support. State libraries, routers, UI providers, host messages and device SDKs are conditional, not prerequisites. Record absent capabilities as not applicable instead of installing packages or inventing ports for the test harness. A simple application can reuse its render/cleanup entry as its host; its contracts still exercise representative real modules and repeated mounting. There is no required Pinia, microfrontend or RTC implementation.
+
+Keep the reusable host and its contracts in the application repository. Where imports read stores or host globals at module scope, activate the host before dynamically importing those modules; a `beforeEach` cannot precede a static import. Use the installed state-library APIs and keep captured store references valid across resets. Include a real component-library import when used by the application so transitive device SDK probes are exercised. Adapt only the external SDK boundary and let unconfigured device calls fail visibly.
+
+Run host contracts in a dedicated suite (for example `tests/host`) outside the business flow include. Exercise module loading, any message API actually used, repeat-scenario isolation and teardown under the final project configuration. Retain these contracts as regression coverage; remove only throwaway probes. Include the host tests and support in the project's test typecheck. The generated test tsconfig includes `tests/host`; existing custom tsconfigs need an explicit check.
+
+Add a project script such as `test:host` running Vitest with a host configuration that reuses the final flow configuration and overrides only the suite include. Map its actual name in `iho-test.config.json`:
+
+```json
+{ "scripts": { "host": "test:host", "flows": "test:flows", "types": "test:types" } }
+```
+
+This is a fragment: merge the mapping while preserving the rest of the profile. The toolkit intentionally supplies no dummy host suite. Run `doctor --project <path> --host`; it executes the mapped host script with Vitest JSON reporting, rejects missing mappings, empty/skipped/failed suites, and runs the mapped types script. Business cases are not required. State the modules and ports actually validated and remaining page-specific adapters in the project's test guide.
+
+`doctor --run` executes host contracts when mapped, plus flows and types. Legacy profiles without `scripts.host` retain flow checking but report host as `not-configured`; passing flows alone is not host acceptance. Static `doctor` reports `not-run` for configured checks. These statuses describe execution evidence, not semantic test quality; inspect the actual imports and contracts. An explicit user request for base-toolchain-only setup may stop before this step with the host marked unverified.
 
 ## Common integration concerns
 
@@ -33,6 +53,6 @@ Local snapshots and the Git provider require no service. The OpenViking adapter 
 
 ## Acceptance
 
-The scaffold's environment test and types must pass. The repository's genuine flow suite must contain passing, non-skipped cases and demonstrate at least one meaningful failure condition. `doctor --run` invokes the configured flow and typecheck scripts, checks Vitest JSON counts and fails for empty/skipped suites. This checks execution evidence, not the semantic quality of the tests; review the actual flow and its requirement separately.
+Report base-toolchain, application-host and business-flow acceptance separately, following the cataloged rule and [acceptance checklist](project-acceptance.md). The repository's genuine flow suite must contain passing, non-skipped cases and demonstrate at least one meaningful failure condition. Host contracts are not business coverage; review the actual flow and its requirement separately.
 
-After verification, remove temporary examples, debug-only code and unreferenced probe helpers introduced during setup. Preserve shared support and meaningful regression tests; explicitly record any probe kept for ongoing coverage. Update scripts/config/imports/docs that reference removed files, and rerun affected checks. Failed diagnostics and project-modified files require review rather than blanket deletion. Environment-only setup may finish without business coverage; do not leave dummy tests to conceal that distinction.
+After verification, remove temporary examples, debug-only code and unreferenced probe helpers introduced during setup. Preserve shared support, host contracts and meaningful regression tests; explicitly record any probe kept for ongoing coverage. Update scripts/config/imports/docs that reference removed files, and rerun affected checks. Failed diagnostics and project-modified files require review rather than blanket deletion. Initialization may finish after host acceptance without business coverage; do not leave dummy tests to conceal that distinction.

@@ -1,6 +1,6 @@
-import { mkdtemp, mkdir, writeFile, rm, readdir, readFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, rm, readdir, readFile, realpath } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { join, resolve } from 'node:path';
+import { join, resolve, dirname, basename } from 'node:path';
 import { spawn } from 'node:child_process';
 import assert from 'node:assert/strict';
 import { initializationPlan } from '../lib/project.mjs';
@@ -32,6 +32,51 @@ assert.deepEqual(plan.missingDependencies, {});
 assert.deepEqual(plan.scriptAdditions, {});
 await mkdir(join(project, 'docs/agents'), { recursive: true });
 await writeFile(join(project, 'docs/agents/testing.md'), 'Temporary toolkit verification fixture, not production business coverage.\n');
+const missingHost = JSON.parse(await cli(['doctor', '--host'], 1));
+assert.equal(missingHost.verification.host, 'not-configured');
+
+// Synthetic application startup contract: importing a real module needs the host first.
+await mkdir(join(project, 'src'), { recursive: true });
+await mkdir(join(project, 'tests/host'), { recursive: true });
+await writeFile(join(project, 'src/host-dependent.ts'), `const host = (globalThis as any).__sampleHost;
+if (!host) throw new Error('Application host must be active before module import');
+export function notify() { host.messages.push('loaded'); }
+`);
+await writeFile(join(project, 'vitest.host.config.ts'), `import { defineConfig } from 'vitest/config';
+import base from './vitest.iho.config';
+export default defineConfig({ ...base, test: { ...base.test, include: ['tests/host/**/*.test.ts'] } });
+`);
+const pkg = JSON.parse(await readFile(join(project, 'package.json'), 'utf8'));
+pkg.scripts['test:host'] = 'vitest run --config vitest.host.config.ts';
+await writeFile(join(project, 'package.json'), JSON.stringify(pkg, null, 2));
+const profile = JSON.parse(await readFile(join(project, 'iho-test.config.json'), 'utf8'));
+profile.scripts.host = 'test:host';
+await writeFile(join(project, 'iho-test.config.json'), JSON.stringify(profile, null, 2));
+const hostTest = join(project, 'tests/host/startup.test.ts');
+await writeFile(hostTest, `import { test } from 'vitest';
+import { notify } from '../../src/host-dependent';
+test('host startup', () => notify());
+`);
+const hostFailure = JSON.parse(await cli(['doctor', '--host'], 1));
+assert.equal(hostFailure.verification.host, 'failed');
+assert.match(JSON.stringify(hostFailure.execution[0].failures), /host must be active before module import/);
+await writeFile(hostTest, `import { beforeAll, beforeEach, afterAll, test, expect } from 'vitest';
+const host = { messages: [] as string[] };
+let notify: typeof import('../../src/host-dependent').notify;
+beforeAll(async () => {
+  (globalThis as any).__sampleHost = host;
+  ({ notify } = await import('../../src/host-dependent'));
+});
+beforeEach(() => { host.messages.length = 0; });
+afterAll(() => { delete (globalThis as any).__sampleHost; });
+test.each([1, 2])('host scenario %i starts clean', () => {
+  expect(host.messages).toEqual([]);
+  notify();
+  expect(host.messages).toEqual(['loaded']);
+});
+`);
+const hostPassed = JSON.parse(await cli(['doctor', '--host']));
+assert.deepEqual(hostPassed.verification, { host: 'passed', flows: 'not-run', types: 'passed' });
 await cli(['doctor', '--run'], 1); // Empty business suite must fail despite the successful environment smoke.
 
 const negative = join(project, 'tests/flows/network.test.ts');
@@ -41,7 +86,7 @@ test('swallowed undeclared request is still rejected', async () => {
 });
 `);
 const negativeReport = JSON.parse(await cli(['doctor', '--run'], 1));
-assert.match(JSON.stringify(negativeReport.execution[0].failures), /Unspecified network requests/);
+assert.match(JSON.stringify(negativeReport.execution.find(r => r.kind === 'flows').failures), /Unspecified network requests/);
 await rm(negative);
 
 // A real component is used here to test doctor integration, not to claim IHO business coverage.
@@ -60,6 +105,12 @@ test('doctor accepts an executed DOM behavior', async () => {
 });
 `);
 await cli(['doctor', '--run']);
-const report = { project, passed: true, checks: ['dependency-install', 'sfc-dom-msw-smoke', 'temporary-files-cleaned', 'test-typecheck', 'idempotent-plan', 'empty-flow-rejected', 'caught-unhandled-network-rejected', 'executed-flow-accepted'] };
+// This entire directory was created by this run; remove successful synthetic probes and dependencies.
+const parent = await realpath(resolve(repo, 'work'));
+const actual = await realpath(project);
+assert.equal(dirname(actual), parent);
+assert.ok(basename(actual).startsWith('bootstrap-verification-'));
+await rm(actual, { recursive: true });
+const report = { project, cleaned: true, passed: true, checks: ['dependency-install', 'sfc-dom-msw-smoke', 'temporary-files-cleaned', 'test-typecheck', 'idempotent-plan', 'missing-host-rejected', 'host-import-order-rejected', 'host-repeat-scenarios-accepted', 'empty-flow-rejected', 'caught-unhandled-network-rejected', 'executed-flow-accepted'] };
 await writeFile(resolve(repo, 'work/bootstrap-verification-latest.json'), JSON.stringify(report, null, 2) + '\n');
 console.log(JSON.stringify(report, null, 2));
