@@ -12,6 +12,8 @@
 
 无需预先克隆工具包或安装 skill。AI 会定位项目、准备工具、安装依赖、适配现有配置并实际验证；只有项目位置、访问权限等必要信息无法自行确定时才询问。文档可单独下载或作为附件转交。
 
+已经接入、需要升级的业务项目，直接复制[给 AI 的完整更新请求](docs/updating-projects.md#直接复制给-ai)。文本包含目标项目识别、官方源码、更新范围和验收要求，可以用于没有此前聊天记录的新会话。
+
 ## 从零接入
 
 要求：已有 Vue 3 应用的 package.json；Node 满足所选 Vitest/Vite 及传递依赖的 engines；可用的 npm、Yarn 或 pnpm。当前建议 Node 24.15 以上的 24 LTS，具体运行时验证记录见 [验证记录](docs/validation.md)。工具不安装系统 Node，也不会把 Vue 2 应用迁移成 Vue 3。
@@ -79,6 +81,21 @@ node bin/iho-test.mjs rules --project /absolute/path/to/iho-project --id iho.beh
 支持本地目录、固定 Git commit 和 OpenViking 提供方。Git 提供方读取指定提交中的文件，忽略未提交内容；当前 checkout HEAD 必须匹配配置。OpenViking 读取同样的规则 catalog，通过 GET `/api/v1/content/read` 获取全文，校验摘要；不写记忆、不启用插件。检索是清单关键词筛选，不是语义检索。
 
 配置示例参见 [知识提供方](docs/knowledge-providers.md)。OpenViking 已通过离线协议测试和一次获授权的真实服务联调，范围与证据见 [联调记录](docs/openviking-live-validation.md)；其他部署仍需验证接口与规则内容，连接或启用插件遵循用户授权。
+
+## 更新已接入项目
+
+让 AI 执行时，复制[完整更新请求](docs/updating-projects.md#直接复制给-ai)；无需另行解释“项目更新说明”指哪份文档。
+
+使用新版工具包 checkout 的统一更新入口，无需手动复制，也不重建项目环境：
+
+```sh
+node bin/iho-test.mjs update --project /absolute/path/to/iho-project
+node bin/iho-test.mjs update --project /absolute/path/to/iho-project --apply
+```
+
+默认先预览，同步两个 skill、共享工具和文档快照；保留项目配置、依赖、宿主及业务测试。固定规则默认不变，如需一起升级工具包管理的本地规则，增加 `--update-rules`。冲突在写入前报告，更新来源和规则基准记录在 `iho-test.lock.json`。项目内新入口也可通过 `--source <工具包checkout>` 更新自身；旧入口首次直接运行新版 checkout 的命令。
+
+同步后按报告完成必要的项目适配，再运行 `doctor --host`，已有业务用例时运行 `doctor --run`。机制和冲突处理详见 [项目更新说明](docs/updating-projects.md)。更新命令不自动拉取源码、安装依赖、连接知识服务、提交或推送。
 
 ## 验证工具箱
 

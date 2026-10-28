@@ -2,6 +2,8 @@
 
 项目 `iho-test.config.json` 的 `knowledge` 字段选择来源。`catalogSha256` 固定 catalog 内容，catalog 内每条规则再固定文档内容。修改正式规则时更新对应摘要并审查版本变更；不要用自动重算掩盖意外漂移。
 
+工具包管理的标准本地快照通过 `update --update-rules` 校验旧基准并升级；普通 `update` 保留固定规则。自定义目录、Git 和 OpenViking 不会被此命令替换或连接。详见 [项目更新说明](updating-projects.md)。
+
 本地快照：
 
 ```json

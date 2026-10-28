@@ -1,9 +1,11 @@
 ---
 name: iho-test-bootstrap
-description: Initialize or repair non-browser behavior testing in Vue 3 IHO projects, including missing dependencies, Vitest configuration, DOM/MSW setup and test typechecking. Use for test infrastructure onboarding or migration.
+description: Initialize, repair or update non-browser behavior testing in Vue 3 IHO projects, including project-local toolkit snapshots, dependencies, test configuration, application hosts and typechecking. Use for test infrastructure onboarding or migration.
 ---
 
 Initialize the base toolchain and validate the application's test host. Add a business flow when the user requests business coverage or supplies a concrete scenario. Report these three results separately. Project installations include a portable toolkit snapshot in this skill's `toolkit/`; commit both IHO skill directories together.
+
+For an existing installation update, run `node scripts/run.mjs info` and read its `updateGuide` absolute path. Use the selected source checkout's `update` command to preview and apply managed changes, preserving project configuration and pinned rules unless their upgrade is requested. Then complete the reported project adaptations and validation. An older entry without `update` is upgraded using the newer checkout's CLI; copying files manually or rerunning init is not the update workflow.
 
 1. Read repository instructions and inspect the working tree, Node version, package manager, lockfile, Vue/Vite versions and existing tests. Preserve existing configuration and user edits. This toolkit targets Vue 3; report other stacks rather than migrating them implicitly.
 2. From this skill's directory, run `node scripts/run.mjs init --project <absolute-project-path>` to review the plan. `--apply` installs missing dependencies with the detected package manager, creates configuration/setup/typechecking and runs environment validation. Use `--no-install` or `--no-verify` only when explicitly needed, and report those steps as incomplete. Existing custom files are preserved, not overwritten.
