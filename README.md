@@ -106,4 +106,4 @@ npm run test:bootstrap
 
 工具箱本身无第三方运行依赖。`test:bootstrap` 会创建隔离的 work/ 项目并真实下载安装测试依赖，验证从零搭建、幂等性、空套件与漏声明请求检测、实际 DOM 用例及类型检查。发布到 npm 尚未配置，当前通过源码 checkout 使用。
 
-项目验收按 [接入验收清单](docs/project-acceptance.md) 执行，工具包命令与验证边界见 [验证记录](docs/validation.md)。具体业务场景、接入结果及历史失败记录在使用方仓库中。
+项目验收按 [接入验收清单](docs/project-acceptance.md) 执行，工具包命令与验证边界见 [验证记录](docs/validation.md)。具体业务场景保留在使用方仓库；工具包接入、升级、适配过程和验收流水仅在用户会话中输出，项目文档只维护持续有效的测试使用说明。

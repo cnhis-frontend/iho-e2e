@@ -32,7 +32,7 @@ Add a project script such as `test:host` running Vitest with a host configuratio
 { "scripts": { "host": "test:host", "flows": "test:flows", "types": "test:types" } }
 ```
 
-This is a fragment: merge the mapping while preserving the rest of the profile. The toolkit intentionally supplies no dummy host suite. Run `doctor --project <path> --host`; it executes the mapped host script with Vitest JSON reporting, rejects missing mappings, empty/skipped/failed suites, and runs the mapped types script. Business cases are not required. State the modules and ports actually validated and remaining page-specific adapters in the project's test guide.
+This is a fragment: merge the mapping while preserving the rest of the profile. The toolkit intentionally supplies no dummy host suite. Run `doctor --project <path> --host`; it executes the mapped host script with Vitest JSON reporting, rejects missing mappings, empty/skipped/failed suites, and runs the mapped types script. Business cases are not required. Report the modules and ports actually validated and remaining page-specific gaps in the user conversation. Keep lasting host usage and limitations in the project's test guide.
 
 `doctor --run` executes host contracts when mapped, plus flows and types. Legacy profiles without `scripts.host` retain flow checking but report host as `not-configured`; passing flows alone is not host acceptance. Static `doctor` reports `not-run` for configured checks. These statuses describe execution evidence, not semantic test quality; inspect the actual imports and contracts. An explicit user request for base-toolchain-only setup may stop before this step with the host marked unverified.
 
@@ -53,6 +53,6 @@ Local snapshots and the Git provider require no service. The OpenViking adapter 
 
 ## Acceptance
 
-Report base-toolchain, application-host and business-flow acceptance separately, following the cataloged rule and [acceptance checklist](project-acceptance.md). The repository's genuine flow suite must contain passing, non-skipped cases and demonstrate at least one meaningful failure condition. Host contracts are not business coverage; review the actual flow and its requirement separately.
+Report base-toolchain, application-host and business-flow acceptance separately in the user conversation, following the cataloged rule's conversation-reporting boundary and [acceptance checklist](project-acceptance.md). Toolkit onboarding, upgrade, adaptation history and acceptance results must not be written to project guides or separate documents. The repository's genuine flow suite must contain passing, non-skipped cases and demonstrate at least one meaningful failure condition. Host contracts are not business coverage; review the actual flow and its requirement separately.
 
 After verification, remove temporary examples, debug-only code and unreferenced probe helpers introduced during setup. Preserve shared support, host contracts and meaningful regression tests; explicitly record any probe kept for ongoing coverage. Update scripts/config/imports/docs that reference removed files, and rerun affected checks. Failed diagnostics and project-modified files require review rather than blanket deletion. Initialization may finish after host acceptance without business coverage; do not leave dummy tests to conceal that distinction.

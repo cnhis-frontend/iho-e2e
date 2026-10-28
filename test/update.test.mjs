@@ -93,7 +93,8 @@ test('rules can be upgraded after a separate tool update without losing the mana
   assert.equal((await (await loadProjectKnowledge(root)).knowledge.read('iho.behavior-testing')).content, oldRule);
   await applyUpdate(await planUpdate(root, { source, updateRules: true }));
   const rule = await (await loadProjectKnowledge(root)).knowledge.read('iho.behavior-testing');
-  assert.equal(rule.version, '2');
+  const sourceCatalog = JSON.parse(await readFile(join(source, 'knowledge/catalog.json'), 'utf8'));
+  assert.equal(rule.version, sourceCatalog.rules.find(item => item.id === rule.id).version);
   assert.notEqual(rule.content, oldRule);
   assert.deepEqual((await planUpdate(root, { source, updateRules: true })).summary.changes, []);
 });
